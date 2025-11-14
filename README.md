@@ -1,117 +1,275 @@
 # Weekly Transcription Bot
 
-This project is a Discord bot designed to record, transcribe, and summarize weekly meetings held in voice channels. The bot uses the OpenAI API for transcription and summarization.
+A professional TypeScript Discord bot designed to record, transcribe, and summarize meetings held in voice channels. The bot uses OpenAI's Whisper API for transcription and GPT-4o for intelligent summarization.
 
 ## Features
 
-- **Record Meetings**: Start and stop recording meetings in a voice channel.
-- **Transcription**: Automatically transcribe recorded audio files.
-- **Summarization**: Generate detailed summaries of transcriptions.
-- **Meeting Management**: List and delete meetings and recordings.
-- **Permission Control**: Restrict commands to specific roles.
+- **Voice Recording**: High-quality audio capture from Discord voice channels with automatic mixing
+- **AI Transcription**: Automatic transcription using OpenAI Whisper API
+- **Smart Summarization**: Detailed meeting summaries generated with GPT-4o
+- **Meeting Management**: List, delete, and retrieve meeting recordings and summaries
+- **Role-Based Permissions**: Restrict command access to specific Discord roles
+- **German Language Support**: Pre-configured for German-language meetings
+- **Type-Safe**: Written in TypeScript with comprehensive type definitions
 
-## Setup
+## Tech Stack
 
-### Prerequisites
+- **TypeScript 5.7** - Type-safe development
+- **Discord.js 14** - Discord API client
+- **@discordjs/voice** - Voice channel recording
+- **OpenAI API** - Whisper (transcription) & GPT-4o (summarization)
+- **FFmpeg** - Audio processing and conversion
+- **ESLint & Prettier** - Code quality and formatting
 
-- Node.js
-- Discord bot token
+## Prerequisites
+
+- Node.js 18.x or higher
+- Discord bot token with voice permissions
 - OpenAI API key
+- FFmpeg (included via ffmpeg-static)
 
-### Installation
+## Installation
 
-1. Clone the repository:
+### 1. Clone the repository
 
-   ```sh
-   git clone https://github.com/Solvro/weekly-transcription-bot.git
-   cd weekly-transcription-bot
-   ```
+```sh
+git clone https://github.com/EricStrohmaier/discord-meeting-transcribe-summary.git
+cd discord-meeting-transcribe-summary
+```
 
-2. Install the required packages:
+### 2. Install dependencies
 
-   ```sh
-   npm install
-   ```
+This project uses **pnpm** for package management:
 
-3. Create a [`.env`](.env.example) file in the root directory and add your credentials:
+```sh
+pnpm install
+```
 
-   ```env
-   TOKEN=<your-discord-bot-token>
-   CLIENT_ID=<your-discord-app-client-id>
-   GUILD_ID=<your-guild-id>
-   OPENAI_API_KEY=<your-openai-api-key>
-   ```
+> **Note**: If you don't have pnpm installed, install it with: `npm install -g pnpm`
 
-4. Invite the bot:
+### 3. Configure environment variables
 
-   ```sh
-   https://discord.com/oauth2/authorize?client_id=<your-discord-app-client-id>&permissions=3147776&scope=bot%20applications.commands
-   ```
+Create a `.env` file in the root directory:
 
-5. Start the bot:
+```env
+TOKEN=your-discord-bot-token
+CLIENT_ID=your-discord-app-client-id
+GUILD_ID=your-guild-id
+OPENAI_API_KEY=your-openai-api-key
+```
 
-   ```sh
-   npm run start
-   ```
+### 4. Build the project
 
-### Docker
+```sh
+pnpm run build
+```
 
-You can also run the bot using Docker.
+### 5. Start the bot
 
-1. Build the Docker image:
+```sh
+pnpm start
+```
 
-   ```sh
-   docker build -t weekly-transcription-bot .
-   ```
+## Development
 
-2. Run the Docker container:
+### Available Scripts
 
-   ```sh
-   docker run -d --name weekly-transcription-bot --env-file .env weekly-transcription-bot
-   ```
+- `pnpm run dev` - Run in development mode with ts-node
+- `pnpm run build` - Build TypeScript to JavaScript
+- `pnpm run build:watch` - Build in watch mode
+- `pnpm start` - Build and start the bot (production)
+- `pnpm run type-check` - Run TypeScript type checking
+- `pnpm run lint` - Lint TypeScript files
+- `pnpm run lint:fix` - Auto-fix linting issues
+- `pnpm run format` - Format code with Prettier
+- `pnpm run format:check` - Check code formatting
+- `pnpm run validate` - Run all checks (type-check, lint, format, test)
+- `pnpm test` - Run tests
+- `pnpm run clean` - Clean build directory
+
+### Project Structure
+
+```
+discord-meeting-transcribe-summary/
+├── src/
+│   ├── commands/           # Discord slash commands
+│   │   ├── logic/         # Command implementations
+│   │   │   ├── meeting_start.ts
+│   │   │   ├── meeting_stop.ts
+│   │   │   ├── meeting_list.ts
+│   │   │   ├── meeting_delete.ts
+│   │   │   └── meeting_send.ts
+│   │   └── meeting.ts     # Command router
+│   ├── types/             # TypeScript type definitions
+│   ├── utils/             # Utility functions
+│   │   ├── embeds.ts      # Discord embed messages
+│   │   ├── state.ts       # Bot state management
+│   │   └── utils.ts       # Audio processing & AI utilities
+│   └── index.ts           # Bot entry point
+├── config/                # Bot configuration
+│   └── default.json       # Settings for OpenAI, roles, etc.
+├── meetings/              # Stored meeting recordings
+├── dist/                  # Compiled JavaScript (gitignored)
+├── tsconfig.json          # TypeScript configuration
+├── eslint.config.mjs      # ESLint configuration
+├── .prettierrc            # Prettier configuration
+└── package.json           # Dependencies and scripts
+```
+
+## Docker Deployment
+
+### Build the Docker image
+
+```sh
+docker build -t discord-meeting-transcribe-summary .
+```
+
+### Run the container
+
+```sh
+docker run -d --name discord-meeting-transcribe-summary --env-file .env discord-meeting-transcribe-summary
+```
 
 ## Configuration
 
-The bot's configuration is stored in the [`config.json`](config.json) file. You can customize various settings, including the transcription and summary models, allowed roles, and system messages.
+Edit `config/default.json` to customize:
 
-## Usage
+- **OpenAI Models**: Change transcription/summary models
+- **Allowed Roles**: Restrict bot usage to specific Discord roles
+- **Language**: Change transcription language (default: German)
+- **Prompts**: Customize summary generation prompts
 
-Run the bot:
+Example configuration:
 
-```sh
-npm run start
+```json
+{
+  "openai": {
+    "summary_model": "gpt-4o",
+    "transcription_model": "whisper-1",
+    "transcription_language": "de",
+    "transcription_max_size_MB": 24
+  },
+  "allowed_roles": ["Admin", "Weekly Transcription Bot Operator"]
+}
 ```
 
 ## Commands
 
-### `/meeting start`
+### `/meeting start <name>`
 
-Starts recording audio from the voice channel.
+Starts recording audio from your current voice channel.
 
-- **name**: The name of the meeting (required)
+- **name** (required): Name for the meeting recording
+
+**Example**: `/meeting start Weekly Team Sync`
 
 ### `/meeting stop`
 
-Stops recording audio from the voice channel, transcribes, and summarizes the meeting.
+Stops the current recording, transcribes the audio, and generates an AI summary. Results are posted in a Discord thread.
 
 ### `/meeting list`
 
-Lists all recorded meetings.
+Displays all meetings with their processing status (recorded, transcribed, summarized).
 
-### `/meeting delete`
+### `/meeting delete <what> <name>`
 
 Deletes a meeting or its recordings.
 
-- **what**: What to delete (`recording` or `meeting`) (required)
-- **name**: The name of the meeting (required)
+- **what** (required): `recording` (delete audio only) or `meeting` (delete everything)
+- **name** (required): Meeting name (autocomplete available)
 
-### `/meeting send`
+**Example**: `/meeting delete meeting Weekly Team Sync`
 
-Sends the recording, transcription or summary of a meeting.
+### `/meeting send <what> <name>`
 
-- **what**: What to send (`recording` | `transcription` | `summary`) (required)
-- **name**: The name of the meeting (required)
+Sends meeting files to the current channel.
+
+- **what** (required): `recording`, `transcription`, or `summary`
+- **name** (required): Meeting name (autocomplete available)
+
+**Example**: `/meeting send summary Weekly Team Sync`
+
+## Bot Permissions
+
+Invite the bot with the following permissions:
+
+```
+https://discord.com/oauth2/authorize?client_id=<CLIENT_ID>&permissions=3147776&scope=bot%20applications.commands
+```
+
+Required permissions:
+
+- Read Messages/View Channels
+- Send Messages
+- Create Public Threads
+- Send Messages in Threads
+- Attach Files
+- Connect to Voice
+- Speak in Voice
+
+## How It Works
+
+1. **Recording**: Bot joins voice channel and captures audio from all participants
+2. **Audio Mixing**: Individual audio streams are mixed into a single mono track
+3. **Encoding**: Mixed audio is encoded to OGG format using Opus codec
+4. **Conversion**: OGG is converted to MP3 for OpenAI compatibility
+5. **Splitting**: Large files are split into chunks (<24MB for Whisper API)
+6. **Transcription**: Each chunk is transcribed via OpenAI Whisper API
+7. **Summarization**: Full transcription is sent to GPT-4o for summary generation
+8. **Delivery**: Summary is posted in a Discord thread with formatted markdown
+
+## Quality Assurance
+
+This project includes comprehensive quality checks:
+
+- **TypeScript**: Full type safety with strict mode enabled
+- **ESLint**: Code quality and consistency rules
+- **Prettier**: Automated code formatting
+- **Build Validation**: Automated compilation checks
+
+Run all checks:
+
+```sh
+pnpm run validate
+```
+
+## Troubleshooting
+
+### Bot doesn't join voice channel
+
+- Ensure the bot has "Connect" and "Speak" permissions
+- Check that you're in a voice channel when running `/meeting start`
+
+### Transcription fails
+
+- Verify your OpenAI API key is valid
+- Check that audio files are not corrupted
+- Ensure you have sufficient OpenAI API credits
+
+### Build errors
+
+- Run `pnpm install` to ensure all dependencies are installed
+- Delete `node_modules` and `dist`, then reinstall: `rm -rf node_modules dist pnpm-lock.yaml && pnpm install`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Install dependencies: `pnpm install`
+4. Make your changes and ensure all checks pass: `pnpm run validate`
+5. Commit your changes: `git commit -am 'Add new feature'`
+6. Push to the branch: `git push origin feature/your-feature`
+7. Create a Pull Request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Credits
+
+Original concept by jakubkobus
+TypeScript migration and improvements contributed by the community
 
 ---
 
-###### Generated by GitHub Copilot because I'm too lazy to write this
+**Built with TypeScript for type safety, reliability, and maintainability** 🚀

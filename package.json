@@ -1,14 +1,19 @@
 {
-  "name": "weekly-transcription-bot",
-  "version": "1.2.0",
+  "name": "discord-meeting-transcribe-summary",
+  "version": "2.0.0",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "build": "tsc && npm run copy-config",
+    "build": "tsc && pnpm run copy-config",
     "build:watch": "tsc --watch",
     "copy-config": "copyfiles -u 1 config/**/*.json dist/",
-    "prebuild": "npm run clean",
+    "prebuild": "pnpm run clean",
     "clean": "rimraf dist",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -17,8 +22,8 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "prestart": "npm run build",
-    "validate": "npm run type-check && npm run lint && npm run format:check && npm run test"
+    "prestart": "pnpm run build",
+    "validate": "pnpm run type-check && pnpm run lint && pnpm run format:check && pnpm run test"
   },
   "type": "commonjs",
   "keywords": [
@@ -29,11 +34,18 @@
     "voice",
     "ai",
     "openai",
-    "typescript"
+    "typescript",
+    "whisper",
+    "gpt-4",
+    "meeting-bot",
+    "voice-recording"
   ],
-  "author": "jakubkobus",
+  "author": "EricStrohmaier",
+  "contributors": [
+    "Claude Code (TypeScript migration)"
+  ],
   "license": "MIT",
-  "description": "A Discord bot that records voice channel meetings, transcribes them using OpenAI's Whisper API, and generates AI-powered summaries",
+  "description": "A professional TypeScript Discord bot that records voice channel meetings, transcribes them using OpenAI's Whisper API, and generates AI-powered summaries with GPT-4o",
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
     "async-lock": "^1.4.1",
@@ -47,7 +59,7 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@types/async-lock": "^1.4.2",
-    "@types/config": "^3.3.6",
+    "@types/config": "^3.3.5",
     "@types/ffmpeg-static": "^3.0.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.2",

@@ -7,8 +7,8 @@ import fs from 'fs';
 import path from 'path';
 
 interface CommandModule {
-  execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
-  autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
+  execute: (_interaction: ChatInputCommandInteraction) => Promise<void>;
+  autocomplete?: (_interaction: AutocompleteInteraction) => Promise<void>;
 }
 
 export const data = new SlashCommandBuilder()
@@ -35,7 +35,10 @@ export const data = new SlashCommandBuilder()
           .setName('what')
           .setDescription('What to delete')
           .setRequired(true)
-          .addChoices({ name: 'recording', value: 'recording' }, { name: 'meeting', value: 'meeting' })
+          .addChoices(
+            { name: 'recording', value: 'recording' },
+            { name: 'meeting', value: 'meeting' }
+          )
       )
       .addStringOption((option) =>
         option

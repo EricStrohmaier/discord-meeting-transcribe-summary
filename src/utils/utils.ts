@@ -51,11 +51,7 @@ export const cleanupRecording = async (): Promise<void> => {
   if (state.userBuffers && state.recordingProcess) {
     const chunkSize = 48000 * 2 * (20 / 1000);
     const mixedBuffer = Buffer.alloc(chunkSize);
-    const mixedSamples = new Int16Array(
-      mixedBuffer.buffer,
-      mixedBuffer.byteOffset,
-      chunkSize / 2
-    );
+    const mixedSamples = new Int16Array(mixedBuffer.buffer, mixedBuffer.byteOffset, chunkSize / 2);
     mixedSamples.fill(0);
 
     for (const [, user] of state.userBuffers) {

@@ -25,7 +25,7 @@ export interface BotState {
   currentMeeting: string | null;
   connection: VoiceConnection | null;
   recordingProcess: ChildProcess | null;
-  mixingInterval: NodeJS.Timeout | null;
+  mixingInterval: ReturnType<typeof setInterval> | null;
   userBuffers: Map<string, UserBuffer> | null;
   userStreams: Map<string, UserStreamInfo> | null;
   meetings: Meeting[];
