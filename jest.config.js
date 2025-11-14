@@ -11,4 +11,5 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   verbose: true,
+  passWithNoTests: true,
 };

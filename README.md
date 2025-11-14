@@ -118,16 +118,123 @@ discord-meeting-transcribe-summary/
 
 ## Docker Deployment
 
-### Build the Docker image
+This project includes a production-ready multi-stage Dockerfile optimized for stability and security.
 
-```sh
-docker build -t discord-meeting-transcribe-summary .
+### Features
+
+- **Multi-stage build** - Optimized image size (~200MB)
+- **Alpine Linux** - Minimal attack surface
+- **Non-root user** - Runs as `nodejs` user for security
+- **Health checks** - Built-in container health monitoring
+- **pnpm support** - Uses pnpm for dependency management
+
+### Quick Start with Docker Compose (Recommended)
+
+1. **Create `.env` file** with your credentials:
+
+```env
+TOKEN=your-discord-bot-token
+CLIENT_ID=your-discord-app-client-id
+GUILD_ID=your-guild-id
+OPENAI_API_KEY=your-openai-api-key
 ```
 
-### Run the container
+2. **Start the bot**:
 
 ```sh
-docker run -d --name discord-meeting-transcribe-summary --env-file .env discord-meeting-transcribe-summary
+docker-compose up -d
+```
+
+3. **View logs**:
+
+```sh
+docker-compose logs -f discord-bot
+```
+
+4. **Stop the bot**:
+
+```sh
+docker-compose down
+```
+
+### Manual Docker Build & Run
+
+**Build the image**:
+
+```sh
+docker build -t discord-meeting-transcribe-summary:latest .
+```
+
+**Run the container**:
+
+```sh
+docker run -d \
+  --name discord-meeting-bot \
+  --env-file .env \
+  -v $(pwd)/meetings:/app/meetings \
+  -v $(pwd)/config:/app/config:ro \
+  --restart unless-stopped \
+  discord-meeting-transcribe-summary:latest
+```
+
+**View logs**:
+
+```sh
+docker logs -f discord-meeting-bot
+```
+
+**Stop the container**:
+
+```sh
+docker stop discord-meeting-bot
+docker rm discord-meeting-bot
+```
+
+### Deployment on Cloud Platforms
+
+#### Railway / Render
+
+1. Connect your GitHub repository
+2. Set environment variables in the platform dashboard
+3. Deploy automatically from the main branch
+
+#### DigitalOcean / AWS / Azure
+
+Use the provided `docker-compose.yml` or deploy as a container service:
+
+```sh
+# Example for DigitalOcean App Platform
+doctl apps create --spec .do/app.yaml
+```
+
+#### Kubernetes
+
+Create a deployment using the Docker image:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-bot
+  template:
+    metadata:
+      labels:
+        app: discord-bot
+    spec:
+      containers:
+      - name: discord-bot
+        image: discord-meeting-transcribe-summary:latest
+        envFrom:
+        - secretRef:
+            name: discord-bot-secrets
+        volumeMounts:
+        - name: meetings
+          mountPath: /app/meetings
 ```
 
 ## Configuration
