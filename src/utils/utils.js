@@ -191,7 +191,9 @@ module.exports = {
   transcribe: async (audioParts) => {
     let fullTranscription = '';
 
-    const openai = new OpenAI(process.env.OPENAI_API_KEY);
+    if(!process.env.OPENAI_API_KEY)
+      throw new Error('Missing OPENAI_API_KEY');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     try {
       for(const filePath of audioParts) {
@@ -221,7 +223,9 @@ module.exports = {
         { role: 'user', content: `${config.get('openai.user_content')}${transcription}` },
       ];
 
-      const openai = new OpenAI(process.env.OPENAI_API_KEY);
+      if(!process.env.OPENAI_API_KEY)
+        throw new Error('Missing OPENAI_API_KEY');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       const response = await openai.chat.completions.create({
         model: config.get('openai.summary_model'),
@@ -247,7 +251,6 @@ module.exports = {
         messageChunk += (messageChunk ? '\n' : '') + line;
       }
     }
-
     if(messageChunk) {
       await thread.send(messageChunk);
     }

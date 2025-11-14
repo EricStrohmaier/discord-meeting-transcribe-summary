@@ -173,6 +173,7 @@ module.exports = {
         state.userStreams = new Map();
 
         receiver.speaking.on('start', (userId) => {
+          if(!state.userStreams || !state.userBuffers) return;
           if(state.userStreams.has(userId)) return;
 
           const opusDecoder = new prism.opus.Decoder({
@@ -207,6 +208,7 @@ module.exports = {
         });
 
         receiver.speaking.on('end', (userId) => {
+          if(!state.userStreams || !state.userBuffers) return;
           const streamInfo = state.userStreams.get(userId);
           if(streamInfo) {
             streamInfo.audioStream.destroy();

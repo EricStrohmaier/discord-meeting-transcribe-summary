@@ -86,8 +86,13 @@ module.exports = {
     if(fileToSend.endsWith('.md')) {
       const fileContent = fs.readFileSync(fileToSend, 'utf-8');
       await interaction.editReply(':arrow_down: Summary');
-      const message = await interaction.fetchReply();
-      const thread = await message.startThread({ name: `Summary of the meeting '${meetingName}'` });
+      let thread;
+      if(interaction.channel.isThread()) {
+        thread = interaction.channel;
+      } else {
+        const message = await interaction.fetchReply();
+        thread = await message.startThread({ name: `Summary of the meeting '${meetingName}'` });
+      }
       await utils.sendSummary(fileContent, thread);
     } else 
       await interaction.editReply({
