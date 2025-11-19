@@ -5,7 +5,6 @@ import {
   ChatInputCommandInteraction,
   MessageFlags,
   ChannelType,
-  GuildMember,
   ThreadChannel,
   NewsChannel,
   TextChannel,
@@ -21,18 +20,7 @@ const stateLock = new AsyncLock();
 const MEETINGS_DIR = path.join(__dirname, '../../../meetings/');
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  const member = interaction.member as GuildMember;
-  const memberRoles = member.roles.cache.map((role) => role.name);
   const botConfig = config as unknown as BotConfig;
-  const hasPermission = memberRoles.some((role) => botConfig.allowed_roles.includes(role));
-
-  if (!hasPermission) {
-    await interaction.reply({
-      embeds: [embeds.noPermissionEmbed],
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
 
   await stateLock.acquire('recording', async () => {
     if (!state.recordingProcess || !state.connection) {
@@ -158,9 +146,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
       console.log('Sending summary to channel/thread...');
       try {
-        if (thread.isThread()) {
-          await utils.sendSummary(summary, thread);
-        }
+        await utils.sendSummary(summary, thread);
         await interaction.editReply({ embeds: [embeds.processingSuccessEmbed] });
       } catch (sendErr) {
         console.warn(

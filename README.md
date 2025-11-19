@@ -227,14 +227,14 @@ spec:
         app: discord-bot
     spec:
       containers:
-      - name: discord-bot
-        image: discord-meeting-transcribe-summary:latest
-        envFrom:
-        - secretRef:
-            name: discord-bot-secrets
-        volumeMounts:
-        - name: meetings
-          mountPath: /app/meetings
+        - name: discord-bot
+          image: discord-meeting-transcribe-summary:latest
+          envFrom:
+            - secretRef:
+                name: discord-bot-secrets
+          volumeMounts:
+            - name: meetings
+              mountPath: /app/meetings
 ```
 
 ## Configuration
@@ -301,7 +301,7 @@ Sends meeting files to the current channel.
 Invite the bot with the following permissions:
 
 ```
-https://discord.com/oauth2/authorize?client_id=<CLIENT_ID>&permissions=3147776&scope=bot%20applications.commands
+https://discord.com/oauth2/authorize?client_id=1438735231258722426&permissions=3147776&scope=bot%20applications.commands
 ```
 
 Required permissions:

@@ -7,11 +7,11 @@ import { spawn } from 'child_process';
 import ffmpeg from 'ffmpeg-static';
 import { PassThrough } from 'stream';
 import AsyncLock from 'async-lock';
-import config from 'config';
+
 import { cleanupRecording } from '../../utils/utils';
 import * as embeds from '../../utils/embeds';
 import state from '../../utils/state';
-import { BotConfig, AudioSettings, UserBuffer } from '../../types';
+import { AudioSettings, UserBuffer } from '../../types';
 
 const stateLock = new AsyncLock();
 
@@ -26,17 +26,6 @@ const AUDIO_SETTINGS: AudioSettings = {
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   const member = interaction.member as GuildMember;
-  const memberRoles = member.roles.cache.map((role) => role.name);
-  const botConfig = config as unknown as BotConfig;
-  const hasPermission = memberRoles.some((role) => botConfig.allowed_roles.includes(role));
-
-  if (!hasPermission) {
-    await interaction.reply({
-      embeds: [embeds.noPermissionEmbed],
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
 
   if (interaction.channel?.isThread()) {
     await interaction.reply({
@@ -111,27 +100,33 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       }
 
       const oggPath = path.join(meetingFolder, `${state.currentMeeting}.ogg`);
-      state.recordingProcess = spawn(ffmpeg, [
-        '-f',
-        's16le',
-        '-ar',
-        AUDIO_SETTINGS.rate.toString(),
-        '-ac',
-        AUDIO_SETTINGS.channels.toString(),
-        '-i',
-        'pipe:0',
-        '-c:a',
-        'libopus',
-        '-b:a',
-        AUDIO_SETTINGS.bitrate,
-        '-application',
-        'voip',
-        '-flush_packets',
-        '1',
-        '-vn',
-        '-y',
-        oggPath,
-      ]);
+      state.recordingProcess = spawn(
+        ffmpeg,
+        [
+          '-f',
+          's16le',
+          '-ar',
+          AUDIO_SETTINGS.rate.toString(),
+          '-ac',
+          AUDIO_SETTINGS.channels.toString(),
+          '-i',
+          'pipe:0',
+          '-c:a',
+          'libopus',
+          '-b:a',
+          AUDIO_SETTINGS.bitrate,
+          '-application',
+          'voip',
+          '-flush_packets',
+          '1',
+          '-vn',
+          '-y',
+          oggPath,
+        ],
+        {
+          stdio: ['pipe', 'ignore', 'ignore'],
+        }
+      );
 
       state.recordingProcess.on('error', (err) => {
         console.error('Recording process error: ', err);

@@ -6,7 +6,7 @@ import OpenAI from 'openai';
 import config from 'config';
 import state from './state';
 import { BotConfig } from '../types';
-import { ThreadChannel } from 'discord.js';
+import { ThreadChannel, TextChannel, NewsChannel } from 'discord.js';
 
 const getAudioDuration = async (filePath: string): Promise<number> => {
   return new Promise((resolve, reject) => {
@@ -76,9 +76,21 @@ export const cleanupRecording = async (): Promise<void> => {
       state.recordingProcess.stdin.end();
     }
 
-    await new Promise<void>((resolve) => {
-      state.recordingProcess!.on('close', () => resolve());
-    });
+    // Wait for FFmpeg to close, but don't hang forever on long recordings.
+    await Promise.race<void>([
+      new Promise<void>((resolve) => {
+        state.recordingProcess!.on('close', () => resolve());
+      }),
+      new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          if (state.recordingProcess) {
+            state.recordingProcess.kill('SIGKILL');
+          }
+          resolve();
+        }, 15000);
+        state.recordingProcess!.once('close', () => clearTimeout(timeout));
+      }),
+    ]);
 
     state.recordingProcess = null;
   }
@@ -110,16 +122,13 @@ export const convertOggToMp3 = async (oggPath: string, mp3Path: string): Promise
       return reject(new Error('FFmpeg binary not found'));
     }
 
-    const ffmpegProcess = spawn(ffmpeg, [
-      '-i',
-      oggPath,
-      '-codec:a',
-      'libmp3lame',
-      '-q:a',
-      '2',
-      '-y',
-      mp3Path,
-    ]);
+    const ffmpegProcess = spawn(
+      ffmpeg,
+      ['-i', oggPath, '-codec:a', 'libmp3lame', '-q:a', '2', '-y', mp3Path],
+      {
+        stdio: ['ignore', 'ignore', 'ignore'],
+      }
+    );
 
     ffmpegProcess.on('close', (code) => {
       if (code === 0) {
@@ -179,18 +188,24 @@ export const splitAudioFile = async (
       `${baseName}_part${partFiles.length + 1}${fileExtension}`
     );
 
-    const ffmpegProcess = spawn(ffmpeg, [
-      '-i',
-      filePath,
-      '-ss',
-      startTime.toFixed(2),
-      '-t',
-      partDuration.toFixed(2),
-      '-c',
-      'copy',
-      '-y',
-      partFilePath,
-    ]);
+    const ffmpegProcess = spawn(
+      ffmpeg,
+      [
+        '-i',
+        filePath,
+        '-ss',
+        startTime.toFixed(2),
+        '-t',
+        partDuration.toFixed(2),
+        '-c',
+        'copy',
+        '-y',
+        partFilePath,
+      ],
+      {
+        stdio: ['ignore', 'ignore', 'ignore'],
+      }
+    );
 
     await new Promise<void>((resolve, reject) => {
       ffmpegProcess.on('close', (code) => {
@@ -271,19 +286,22 @@ export const summarize = async (transcriptionPath: string): Promise<string> => {
   }
 };
 
-export const sendSummary = async (message: string, thread: ThreadChannel): Promise<void> => {
+export const sendSummary = async (
+  message: string,
+  channel: ThreadChannel | TextChannel | NewsChannel
+): Promise<void> => {
   const lines = message.split('\n');
   let messageChunk = '';
 
   for (const line of lines) {
     if ((messageChunk + '\n' + line).length > 2000) {
-      await thread.send(messageChunk);
+      await channel.send(messageChunk);
       messageChunk = line;
     } else {
       messageChunk += (messageChunk ? '\n' : '') + line;
     }
   }
   if (messageChunk) {
-    await thread.send(messageChunk);
+    await channel.send(messageChunk);
   }
 };

@@ -1,23 +1,7 @@
-import { ChatInputCommandInteraction, MessageFlags, GuildMember } from 'discord.js';
-import config from 'config';
+import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
 import state from '../../utils/state';
-import { noPermissionEmbed } from '../../utils/embeds';
-import { BotConfig } from '../../types';
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  const member = interaction.member as GuildMember;
-  const memberRoles = member.roles.cache.map((role) => role.name);
-  const botConfig = config as unknown as BotConfig;
-  const hasPermission = memberRoles.some((role) => botConfig.allowed_roles.includes(role));
-
-  if (!hasPermission) {
-    await interaction.reply({
-      embeds: [noPermissionEmbed],
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
   if (state.meetings.length === 0) {
     await interaction.reply({
       content: ':x: No meetings found',

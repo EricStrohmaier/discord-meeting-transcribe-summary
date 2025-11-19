@@ -1,16 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  ChatInputCommandInteraction,
-  MessageFlags,
-  GuildMember,
-  AutocompleteInteraction,
-} from 'discord.js';
-import config from 'config';
+import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 import state from '../../utils/state';
 import * as embeds from '../../utils/embeds';
 import * as utils from '../../utils/utils';
-import { BotConfig } from '../../types';
 
 export async function autocomplete(interaction: AutocompleteInteraction): Promise<void> {
   const focusedValue = interaction.options.getFocused().toLowerCase();
@@ -23,19 +16,6 @@ export async function autocomplete(interaction: AutocompleteInteraction): Promis
 }
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-  const member = interaction.member as GuildMember;
-  const memberRoles = member.roles.cache.map((role) => role.name);
-  const botConfig = config as unknown as BotConfig;
-  const hasPermission = memberRoles.some((role) => botConfig.allowed_roles.includes(role));
-
-  if (!hasPermission) {
-    await interaction.reply({
-      embeds: [embeds.noPermissionEmbed],
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
   await interaction.deferReply();
 
   const meetingName = interaction.options.getString('name', true);
