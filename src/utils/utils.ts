@@ -238,15 +238,63 @@ export const transcribe = async (audioParts: string[]): Promise<string> => {
   const botConfig = config as unknown as BotConfig;
 
   try {
-    for (const filePath of audioParts) {
-      const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(filePath),
-        model: botConfig.openai.transcription_model,
-        language: botConfig.openai.transcription_language,
-      });
+    const maxRetries = 3;
+    const baseDelayMs = 1000;
 
-      fullTranscription += transcription.text + ' ';
-      if (audioParts.length > 1) fs.unlinkSync(filePath);
+    const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (const filePath of audioParts) {
+      let attempt = 0;
+      let partTranscriptionText = '';
+
+      while (attempt < maxRetries) {
+        attempt += 1;
+
+        try {
+          console.log(`Transcribing audio part ${filePath} (attempt ${attempt}/${maxRetries})...`);
+
+          const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(filePath),
+            model: botConfig.openai.transcription_model,
+            language: botConfig.openai.transcription_language,
+          });
+
+          partTranscriptionText = transcription.text;
+          break;
+        } catch (e) {
+          const err = e as Error;
+          const message = err.message || '';
+          const name = err.name || '';
+
+          const isConnectionError =
+            name === 'APIConnectionError' ||
+            name === 'APIConnectionTimeoutError' ||
+            /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(message);
+
+          console.error(
+            `Error transcribing audio part ${filePath} on attempt ${attempt}:`,
+            message
+          );
+
+          if (!isConnectionError || attempt >= maxRetries) {
+            throw err;
+          }
+
+          const backoff = baseDelayMs * Math.pow(2, attempt - 1);
+          console.log(
+            `Connection error detected, retrying transcription for part ${filePath} in ${backoff}ms...`
+          );
+          await delay(backoff);
+        }
+      }
+
+      if (partTranscriptionText) {
+        fullTranscription += partTranscriptionText + ' ';
+      }
+
+      if (audioParts.length > 1 && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     return fullTranscription.trim();
