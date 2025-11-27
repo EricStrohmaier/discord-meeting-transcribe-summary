@@ -19,9 +19,9 @@
     ],
 
     "summary_model": "gpt-4o",
-    "transcription_model": "whisper-1",
+    "transcription_model": "whisper-1", 
     "transcription_language": "de",
-    "transcription_max_size_MB": 16
+    "transcription_max_size_MB": 8
   },
 
   "allowed_roles": ["Admin", "Weekly Transcription Bot Operator", "Meeting Notes","Meeting Notes#9831", "1439904218885652553", "1062442025603047546"]

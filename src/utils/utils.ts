@@ -260,6 +260,9 @@ export const transcribe = async (audioParts: string[]): Promise<string> => {
           });
 
           partTranscriptionText = transcription.text;
+          console.log(
+            `Transcription of audio part ${filePath} successful (attempt ${attempt}/${maxRetries}).`
+          );
           break;
         } catch (e) {
           const err = e as Error;
@@ -269,7 +272,7 @@ export const transcribe = async (audioParts: string[]): Promise<string> => {
           const isConnectionError =
             name === 'APIConnectionError' ||
             name === 'APIConnectionTimeoutError' ||
-            /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(message);
+            /ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|Connection error/i.test(message);
 
           console.error(
             `Error transcribing audio part ${filePath} on attempt ${attempt}:`,
@@ -297,6 +300,7 @@ export const transcribe = async (audioParts: string[]): Promise<string> => {
       }
     }
 
+    console.log('All audio parts transcribed successfully.');
     return fullTranscription.trim();
   } catch (e) {
     console.error('Error transcribing audio:', (e as Error).message);

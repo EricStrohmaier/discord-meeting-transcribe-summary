@@ -23,7 +23,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "prestart": "pnpm run build",
-    "validate": "pnpm run type-check && pnpm run lint && pnpm run format:check"
+    "validate": "pnpm run type-check && pnpm run lint && pnpm run format:check",
+    "reprocess": "node dist/scripts/reprocessMeeting.js"
   },
   "type": "commonjs",
   "keywords": [
