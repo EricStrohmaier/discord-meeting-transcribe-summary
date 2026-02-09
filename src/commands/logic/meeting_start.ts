@@ -228,6 +228,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         if (!state.userStreams || !state.userBuffers) return;
         if (state.userStreams.has(userId)) return;
 
+        console.log(`[audio] User ${userId} started speaking`);
+
         let opusDecoder: prism.opus.Decoder;
         try {
           opusDecoder = new prism.opus.Decoder({
@@ -254,7 +256,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
         audioStream.pipe(opusDecoder).pipe(pcmStream);
 
-        state.userBuffers.set(userId, { buffer: Buffer.alloc(0), position: 0 });
+        if (!state.userBuffers.has(userId)) {
+          state.userBuffers.set(userId, { buffer: Buffer.alloc(0), position: 0 });
+        }
 
         pcmStream.on('data', (chunk: Buffer) => {
           const user = state.userBuffers!.get(userId);
@@ -274,10 +278,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         if (!state.userStreams || !state.userBuffers) return;
         const streamInfo = state.userStreams.get(userId);
         if (streamInfo) {
+          const userBuf = state.userBuffers.get(userId);
+          console.log(
+            `[audio] User ${userId} stopped speaking. Buffer: ${userBuf ? userBuf.buffer.length : 0} bytes`
+          );
           streamInfo.audioStream.destroy();
           streamInfo.opusDecoder.destroy();
           streamInfo.pcmStream.destroy();
-          state.userBuffers.delete(userId);
           state.userStreams.delete(userId);
         }
       });
