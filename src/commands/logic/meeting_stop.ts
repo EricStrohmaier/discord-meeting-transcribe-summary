@@ -122,6 +122,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         fs.writeFileSync(transcriptionFile, transcription, {
           encoding: 'utf8',
         });
+
+        const meetingEntry = state.meetings.find((m) => m.name === meetingName);
+        if (meetingEntry) meetingEntry.transcribed = true;
       } catch (err) {
         console.error('Error during transcription: ', err);
         throw new Error('Transcription failed');
@@ -139,6 +142,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         console.log('Saving summary to file...');
         const summaryFile = path.join(meetingPath, `${meetingName}.md`);
         fs.writeFileSync(summaryFile, summary, { encoding: 'utf8' });
+
+        const summaryMeeting = state.meetings.find((m) => m.name === meetingName);
+        if (summaryMeeting) summaryMeeting.summarized = true;
       } catch (err) {
         console.error('Error during summary generation: ', err);
         throw new Error('Summary failed');

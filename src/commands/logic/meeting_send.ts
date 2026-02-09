@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, AutocompleteInteraction, TextChannel } from 'discord.js';
 import state from '../../utils/state';
 import * as embeds from '../../utils/embeds';
 import * as utils from '../../utils/utils';
@@ -106,10 +106,18 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       await utils.sendSummary(fileContent, interaction.channel);
     } else {
       const message = await interaction.fetchReply();
-      const thread = await message.startThread({
-        name: `Summary of the meeting '${meetingName}'`,
-      });
-      await utils.sendSummary(fileContent, thread);
+      try {
+        const thread = await message.startThread({
+          name: `Summary of the meeting '${meetingName}'`,
+        });
+        await utils.sendSummary(fileContent, thread);
+      } catch (err) {
+        console.warn(
+          'Could not start thread for summary, falling back to channel:',
+          (err as Error)?.message || err
+        );
+        await utils.sendSummary(fileContent, interaction.channel! as unknown as TextChannel);
+      }
     }
   } else {
     await interaction.editReply({

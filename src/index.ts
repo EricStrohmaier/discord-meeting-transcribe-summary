@@ -137,7 +137,17 @@ async function initializeBot() {
       try {
         await command.execute(interaction);
       } catch (error) {
-        console.error(error);
+        console.error('Command execution error:', error);
+        try {
+          const content = ':x: An error occurred while executing this command.';
+          if (interaction.replied || interaction.deferred) {
+            await interaction.editReply({ content });
+          } else {
+            await interaction.reply({ content, ephemeral: true });
+          }
+        } catch (replyError) {
+          console.error('Failed to send error reply:', replyError);
+        }
       }
     } else if (interaction.isAutocomplete()) {
       const command = interaction.client.commands.get(interaction.commandName);

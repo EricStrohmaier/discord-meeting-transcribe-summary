@@ -54,24 +54,38 @@ export const cleanupRecording = async (): Promise<void> => {
 
   if (state.userBuffers && state.recordingProcess) {
     const chunkSize = 48000 * 2 * (20 / 1000);
-    const mixedBuffer = Buffer.alloc(chunkSize);
-    const mixedSamples = new Int16Array(mixedBuffer.buffer, mixedBuffer.byteOffset, chunkSize / 2);
-    mixedSamples.fill(0);
 
-    for (const [, user] of state.userBuffers) {
-      const available = user.buffer.length - user.position;
-      if (available > 0) {
-        const chunk = user.buffer.subarray(user.position, user.position + available);
-        const userSamples = new Int16Array(chunk.buffer, chunk.byteOffset, chunk.length / 2);
-        for (let i = 0; i < userSamples.length; i++) {
-          const sum = mixedSamples[i] + userSamples[i];
-          mixedSamples[i] = Math.max(-32768, Math.min(32767, sum));
+    // Flush ALL remaining audio from user buffers, not just one chunk
+    let hasData = true;
+    while (hasData) {
+      hasData = false;
+      const mixedBuffer = Buffer.alloc(chunkSize);
+      const mixedSamples = new Int16Array(
+        mixedBuffer.buffer,
+        mixedBuffer.byteOffset,
+        chunkSize / 2
+      );
+      mixedSamples.fill(0);
+
+      for (const [, user] of state.userBuffers) {
+        const available = user.buffer.length - user.position;
+        if (available > 0) {
+          hasData = true;
+          const bytesToRead = Math.min(available, chunkSize);
+          const chunk = user.buffer.subarray(user.position, user.position + bytesToRead);
+          user.position += bytesToRead;
+
+          const userSamples = new Int16Array(chunk.buffer, chunk.byteOffset, chunk.length / 2);
+          for (let i = 0; i < userSamples.length; i++) {
+            const sum = mixedSamples[i] + userSamples[i];
+            mixedSamples[i] = Math.max(-32768, Math.min(32767, sum));
+          }
         }
       }
-    }
 
-    if (state.recordingProcess.stdin && !state.recordingProcess.stdin.destroyed) {
-      state.recordingProcess.stdin.write(mixedBuffer);
+      if (hasData && state.recordingProcess.stdin && !state.recordingProcess.stdin.destroyed) {
+        state.recordingProcess.stdin.write(mixedBuffer);
+      }
     }
   }
 

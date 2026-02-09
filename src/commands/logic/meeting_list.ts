@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, MessageFlags } from 'discord.js';
+import { ChatInputCommandInteraction, MessageFlags, TextChannel } from 'discord.js';
 import state from '../../utils/state';
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -13,7 +13,13 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   await interaction.reply(':arrow_down: Meetings list');
   const message = await interaction.fetchReply();
 
-  const thread = await message.startThread({ name: 'Meetings list' });
+  let thread;
+  try {
+    thread = await message.startThread({ name: 'Meetings list' });
+  } catch (err) {
+    console.warn('Could not start thread for meeting list:', (err as Error)?.message || err);
+    thread = interaction.channel! as unknown as TextChannel;
+  }
 
   const formattedMeetings = state.meetings.map((meeting) => {
     const name = meeting.name.padEnd(20, ' ');
