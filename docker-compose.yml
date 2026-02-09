@@ -14,6 +14,7 @@ services:
       - CLIENT_ID=${CLIENT_ID}
       - GUILD_ID=${GUILD_ID}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HEALTH_PORT=3006
       - NODE_ENV=production
 
     # Persistent storage for meeting recordings
