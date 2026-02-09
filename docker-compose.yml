@@ -14,16 +14,12 @@ services:
       - CLIENT_ID=${CLIENT_ID}
       - GUILD_ID=${GUILD_ID}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - HEALTH_PORT=3000
+      - HEALTH_PORT=3006
       - NODE_ENV=production
 
     # Persistent storage for meeting recordings
     volumes:
       - meetings_data:/app/meetings
-
-    # Expose health check port
-    ports:
-      - "3000:3000"
 
     # Resource limits
     deploy:
@@ -44,7 +40,7 @@ services:
 
     # Real health check against the HTTP endpoint
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:3006/"]
       interval: 30s
       timeout: 5s
       retries: 3

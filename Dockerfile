@@ -56,8 +56,8 @@ RUN mkdir -p /app/meetings
 ENV NODE_ENV=production
 
 # Expose health check port
-ENV HEALTH_PORT=3000
-EXPOSE 3000
+ENV HEALTH_PORT=3006
+EXPOSE 3006
 
 # Run as non-root user for security
 RUN groupadd -g 1001 nodejs && \
@@ -68,7 +68,7 @@ USER nodejs
 
 # Health check — hits the real HTTP health endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:3000/ || exit 1
+  CMD curl -f http://localhost:3006/ || exit 1
 
 # Start the bot
 CMD ["node", "dist/index.js"]
