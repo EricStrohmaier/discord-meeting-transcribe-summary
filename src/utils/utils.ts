@@ -1,20 +1,24 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import ffmpeg from 'ffmpeg-static';
+import ffmpegStatic from 'ffmpeg-static';
 import OpenAI from 'openai';
 import config from 'config';
 import state from './state';
 import { BotConfig } from '../types';
 import { ThreadChannel, TextChannel, NewsChannel } from 'discord.js';
 
+export const resolveFfmpegPath = (): string => {
+  const envPath = process.env.FFMPEG_PATH;
+  if (envPath && fs.existsSync(envPath)) return envPath;
+  if (ffmpegStatic && fs.existsSync(ffmpegStatic)) return ffmpegStatic;
+  return 'ffmpeg';
+};
+
 const getAudioDuration = async (filePath: string): Promise<number> => {
   return new Promise((resolve, reject) => {
-    if (!ffmpeg) {
-      return reject(new Error('FFmpeg binary not found'));
-    }
-
-    const ffmpegProcess = spawn(ffmpeg, ['-i', filePath, '-f', 'null', '-']);
+    const ffmpegPath = resolveFfmpegPath();
+    const ffmpegProcess = spawn(ffmpegPath, ['-i', filePath, '-f', 'null', '-']);
 
     let duration = 0;
     ffmpegProcess.stderr.on('data', (data: Buffer) => {
@@ -118,12 +122,10 @@ export const cleanupRecording = async (): Promise<void> => {
 
 export const convertOggToMp3 = async (oggPath: string, mp3Path: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (!ffmpeg) {
-      return reject(new Error('FFmpeg binary not found'));
-    }
+    const ffmpegPath = resolveFfmpegPath();
 
     const ffmpegProcess = spawn(
-      ffmpeg,
+      ffmpegPath,
       ['-i', oggPath, '-codec:a', 'libmp3lame', '-q:a', '2', '-y', mp3Path],
       {
         stdio: ['ignore', 'ignore', 'ignore'],
@@ -169,9 +171,7 @@ export const splitAudioFile = async (
     return [filePath];
   }
 
-  if (!ffmpeg) {
-    throw new Error('FFmpeg binary not found');
-  }
+  const ffmpegPath = resolveFfmpegPath();
 
   const duration = await getAudioDuration(filePath);
   const partDuration = (maxFileSize_Bytes / fileSize) * duration;
@@ -189,7 +189,7 @@ export const splitAudioFile = async (
     );
 
     const ffmpegProcess = spawn(
-      ffmpeg,
+      ffmpegPath,
       [
         '-i',
         filePath,

@@ -4,11 +4,10 @@ import fs from 'fs';
 import path from 'path';
 import prism from 'prism-media';
 import { spawn } from 'child_process';
-import ffmpeg from 'ffmpeg-static';
 import { PassThrough } from 'stream';
 import AsyncLock from 'async-lock';
 
-import { cleanupRecording } from '../../utils/utils';
+import { cleanupRecording, resolveFfmpegPath } from '../../utils/utils';
 import * as embeds from '../../utils/embeds';
 import state from '../../utils/state';
 import { AudioSettings, UserBuffer } from '../../types';
@@ -92,16 +91,16 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       state.currentMeeting = meetingName;
       await interaction.reply({ embeds: [embeds.recordingStartedEmbed(meetingName)] });
 
-      const meetingFolder = path.join(MEETINGS_DIR, state.currentMeeting);
-      if (!fs.existsSync(meetingFolder)) fs.mkdirSync(meetingFolder);
+      if (!fs.existsSync(MEETINGS_DIR)) fs.mkdirSync(MEETINGS_DIR, { recursive: true });
 
-      if (!ffmpeg) {
-        throw new Error('FFmpeg binary not found');
-      }
+      const meetingFolder = path.join(MEETINGS_DIR, state.currentMeeting);
+      if (!fs.existsSync(meetingFolder)) fs.mkdirSync(meetingFolder, { recursive: true });
+
+      const ffmpegPath = resolveFfmpegPath();
 
       const oggPath = path.join(meetingFolder, `${state.currentMeeting}.ogg`);
       state.recordingProcess = spawn(
-        ffmpeg,
+        ffmpegPath,
         [
           '-f',
           's16le',
@@ -140,7 +139,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       state.recordingProcess.on('close', async () => {
         if (!fs.existsSync(oggPath)) {
           console.error('OGG file does not exist');
-          fs.rmSync(meetingFolder, { recursive: true });
           await interaction.editReply({ embeds: [embeds.errorWhileRecordingEmbed] });
         } else {
           console.log('Recording saved successfully');
@@ -203,15 +201,47 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       const receiver = state.connection.receiver;
       state.userStreams = new Map();
 
-      receiver.speaking.on('start', (userId) => {
-        if (!state.userStreams || !state.userBuffers) return;
-        if (state.userStreams.has(userId)) return;
-
-        const opusDecoder = new prism.opus.Decoder({
+      let opusDecoderAvailable = true;
+      try {
+        const decoder = new prism.opus.Decoder({
           rate: AUDIO_SETTINGS.rate,
           channels: AUDIO_SETTINGS.channels,
           frameSize: AUDIO_SETTINGS.frameSize,
         });
+        decoder.destroy();
+      } catch (e) {
+        opusDecoderAvailable = false;
+        console.error(
+          'Opus decoder not available. Install @discordjs/opus or opusscript to record audio.',
+          e
+        );
+      }
+
+      if (!opusDecoderAvailable) {
+        await interaction.editReply({ embeds: [embeds.errorWhileRecordingEmbed] });
+        await cleanupRecording();
+        state.currentMeeting = null;
+        return;
+      }
+
+      receiver.speaking.on('start', (userId) => {
+        if (!state.userStreams || !state.userBuffers) return;
+        if (state.userStreams.has(userId)) return;
+
+        let opusDecoder: prism.opus.Decoder;
+        try {
+          opusDecoder = new prism.opus.Decoder({
+            rate: AUDIO_SETTINGS.rate,
+            channels: AUDIO_SETTINGS.channels,
+            frameSize: AUDIO_SETTINGS.frameSize,
+          });
+        } catch (e) {
+          console.error(
+            'Failed to initialize Opus decoder. Install @discordjs/opus or opusscript to record audio.',
+            e
+          );
+          return;
+        }
 
         const audioStream = receiver.subscribe(userId, {
           end: {

@@ -54,6 +54,9 @@ tmp
 temp
 *.tmp
 
+# Meetings data (persisted via Docker volume)
+meetings
+
 # Docker
 Dockerfile
 docker-compose.yml

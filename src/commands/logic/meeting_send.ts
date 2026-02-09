@@ -7,7 +7,7 @@ import * as utils from '../../utils/utils';
 
 export async function autocomplete(interaction: AutocompleteInteraction): Promise<void> {
   const focusedValue = interaction.options.getFocused().toLowerCase();
-  const choices = state.meetings.map((meeting) => meeting.name);
+  const choices = ['latest', ...state.meetings.map((meeting) => meeting.name)];
   const filtered = choices
     .filter((choice) => choice.toLowerCase().startsWith(focusedValue))
     .slice(0, 25);
@@ -18,9 +18,35 @@ export async function autocomplete(interaction: AutocompleteInteraction): Promis
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
 
-  const meetingName = interaction.options.getString('name', true);
+  let meetingName = interaction.options.getString('name', true);
   const what = interaction.options.getString('what', true);
   const MEETINGS_DIR = path.join(__dirname, '../../../meetings/');
+
+  if (meetingName === 'latest') {
+    if (!fs.existsSync(MEETINGS_DIR)) {
+      await interaction.editReply({ embeds: [embeds.meetingDoesNotExistEmbed] });
+      return;
+    }
+
+    const entries = fs
+      .readdirSync(MEETINGS_DIR)
+      .map((name) => ({ name, fullPath: path.join(MEETINGS_DIR, name) }))
+      .filter((entry) => fs.existsSync(entry.fullPath) && fs.statSync(entry.fullPath).isDirectory())
+      .map((entry) => ({
+        name: entry.name,
+        fullPath: entry.fullPath,
+        mtimeMs: fs.statSync(entry.fullPath).mtimeMs,
+      }))
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    if (entries.length === 0) {
+      await interaction.editReply({ embeds: [embeds.meetingDoesNotExistEmbed] });
+      return;
+    }
+
+    meetingName = entries[0].name;
+  }
+
   const meetingPath = path.join(MEETINGS_DIR, meetingName);
 
   if (!fs.existsSync(meetingPath)) {

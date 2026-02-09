@@ -10,10 +10,14 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import state from './utils/state';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const HEALTH_PORT = parseInt(process.env.HEALTH_PORT || '3000', 10);
+let botReady = false;
 
 interface Command {
   data: {
@@ -73,11 +77,35 @@ async function initializeBot() {
 
   client.once(Events.ClientReady, (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+    botReady = true;
+  });
+
+  // Auto-reconnect on unexpected disconnect
+  client.on('error', (error) => {
+    console.error('Discord client error:', error.message);
+  });
+
+  client.on('warn', (warning) => {
+    console.warn('Discord client warning:', warning);
+  });
+
+  client.on(Events.ShardDisconnect, (event, shardId) => {
+    console.warn(
+      `Shard ${shardId} disconnected (code ${event.code}). Discord.js will auto-reconnect.`
+    );
+  });
+
+  client.on(Events.ShardReconnecting, (shardId) => {
+    console.log(`Shard ${shardId} reconnecting...`);
+  });
+
+  client.on(Events.ShardResume, (shardId, replayedEvents) => {
+    console.log(`Shard ${shardId} resumed. Replayed ${replayedEvents} events.`);
   });
 
   // Load available meetings
   const MEETINGS_DIR = path.join(__dirname, '..', 'meetings/');
-  if (!fs.existsSync(MEETINGS_DIR)) fs.mkdirSync(MEETINGS_DIR);
+  if (!fs.existsSync(MEETINGS_DIR)) fs.mkdirSync(MEETINGS_DIR, { recursive: true });
 
   const files = fs.readdirSync(MEETINGS_DIR);
   const directories = files.filter((file) =>
@@ -130,6 +158,45 @@ async function initializeBot() {
   });
 
   await client.login(process.env.TOKEN);
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    console.log(`Received ${signal}. Shutting down gracefully...`);
+    botReady = false;
+    try {
+      client.destroy();
+    } catch (e) {
+      console.error('Error during client destroy:', e);
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
+
+// Health check HTTP server for Coolify / Docker
+const healthServer = http.createServer((_req, res) => {
+  if (botReady) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', uptime: process.uptime() }));
+  } else {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'starting' }));
+  }
+});
+
+healthServer.listen(HEALTH_PORT, () => {
+  console.log(`Health check server listening on port ${HEALTH_PORT}`);
+});
+
+// Global crash recovery — log but don't exit
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
 
 initializeBot().catch(console.error);
